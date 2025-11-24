@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiApp5.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30,0" Spacing="25">
+
+            <Label Text="Registro de Usuario"
+                   Style="{StaticResource Headline}"
+                   SemanticProperties.HeadingLevel="Level1" />
+
+            <!-- Correo -->
+            <Label Text="Correo" />
+            <Entry Placeholder="tu@correo.com"
+                   Keyboard="Email"
+                   Text="{Binding Correo}" />
+            <Label Text="{Binding CorreoError}"
+                   TextColor="Red"
+                   IsVisible="{Binding TieneCorreoError}" />
+
+            <!-- Contraseña -->
+            <Label Text="Contraseña" />
+            <Entry Placeholder="Mín.6: mayúscula, minúscula, número y símbolo"
+                   IsPassword="True"
+                   Text="{Binding Contrasena}" />
+            <Label Text="{Binding ContrasenaError}"
+                   TextColor="Red"
+                   IsVisible="{Binding TieneContrasenaError}" />
+
+            <!-- Repetir Contraseña -->
+            <Label Text="Repetir contraseña" />
+            <Entry Placeholder="Repite la contraseña"
+                   IsPassword="True"
+                   Text="{Binding RepetirContrasena}" />
+            <Label Text="{Binding RepetirContrasenaError}"
+                   TextColor="Red"
+                   IsVisible="{Binding TieneRepetirContrasenaError}" />
+
+            <!-- Mensaje de registro -->
+            <Label x:Name="RegistroLabel"
+                   Text="{Binding RegistroMensaje}"
+                   IsVisible="{Binding TieneRegistroMensaje}"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label"
+                                 Binding="{Binding RegistroExitoso}"
+                                 Value="True">
+                        <Setter Property="TextColor" Value="Green" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label"
+                                 Binding="{Binding RegistroExitoso}"
+                                 Value="False">
+                        <Setter Property="TextColor" Value="Red" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <Button Text="Registrar"
+                    Clicked="OnRegistrarClicked"
+                    HorizontalOptions="Fill" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
