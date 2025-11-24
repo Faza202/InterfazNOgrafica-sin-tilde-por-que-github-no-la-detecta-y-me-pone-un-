@@ -32,9 +32,7 @@ namespace MauiApp5.WinUI
                 System.Diagnostics.Debugger.Break();
             }
 #endif
-            // Aquí puedes agregar logging personalizado, por ejemplo:
-            // System.Diagnostics.Debug.WriteLine($"Excepción no controlada: {e.Exception}");
-            // Decidir si se marca como manejada:
+            
             e.Handled = true; // Cambia a false si quieres que la app termine en errores graves.
         }
     }

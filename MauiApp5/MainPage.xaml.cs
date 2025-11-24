@@ -29,7 +29,7 @@ namespace MauiApp5
             "icloud.com","me.com","proton.me","protonmail.com","gmx.com","aol.com"
         };
 
-        // TLD válidos frecuentes (se puede ampliar)
+        // TLD válidos frecuentes
         static readonly string[] s_tldsValidos =
         {
             "com","net","org","edu","gov","es","mx","ar","co","io","me"
@@ -209,7 +209,7 @@ namespace MauiApp5
                 }
             }
 
-            if (mejor <= 2) // probable error
+            if (mejor <= 2) 
                 return $"Dominio posiblemente mal escrito. ¿Quiso decir '{sugerencia}'?";
 
             // Si TLD no es conocido, aún así permitir (podría ser dominio corporativo)
