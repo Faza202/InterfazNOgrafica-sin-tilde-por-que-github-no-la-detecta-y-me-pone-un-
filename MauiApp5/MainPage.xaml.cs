@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 
 namespace MauiApp5
 {
     public partial class MainPage : ContentPage, INotifyPropertyChanged
     {
-        // Almacén de usuarios en memoria (para fines de demostración)
+        //almacén de usuarios en memoria por ahora
         private static readonly Dictionary<string, string> s_usuariosRegistrados = new();
 
         string _correo = string.Empty;
@@ -23,23 +24,27 @@ namespace MauiApp5
         string _registroMensaje = string.Empty;
         bool _registroExitoso;
 
-        // --- Propiedades para Login ---
+        //propiedades para Login
         string _loginCorreo = string.Empty;
         string _loginContrasena = string.Empty;
         string _loginMensaje = string.Empty;
         bool _loginExitoso;
 
-        // Regex básica para forma general de correo
+        //control de intentos de login
+        private int _intentosFallidos = 0;
+        private DateTime _tiempoBloqueo = DateTime.MinValue;
+
+        //regex básica para forma general de correo
         static readonly Regex s_emailRegex = new(@"^(?<local>[^@\s]+)@(?<domain>[A-Za-z0-9.-]+\.[A-Za-z]{2,})$", RegexOptions.Compiled);
 
-        // Dominios de proveedores comunes
+        //dominios de proveedores comunes
         static readonly string[] s_dominiosComunes =
         {
             "gmail.com","outlook.com","hotmail.com","live.com","yahoo.com",
             "icloud.com","me.com","proton.me","protonmail.com","gmx.com","aol.com"
         };
 
-        // TLD válidos frecuentes
+        //TLD válidos frecuentes
         static readonly string[] s_tldsValidos =
         {
             "com","net","org","edu","gov","es","mx","ar","co","io","me"
@@ -83,10 +88,9 @@ namespace MauiApp5
             get => _correoError;
             private set
             {
-                if (_correoError == value) return;
                 _correoError = value;
                 OnPropertyChanged(nameof(CorreoError));
-                OnPropertyChanged(nameof(TieneCorreoError));
+                _ = AnimateLabel(CorreoErrorLabel, !string.IsNullOrEmpty(value));
             }
         }
 
@@ -95,10 +99,9 @@ namespace MauiApp5
             get => _contrasenaError;
             private set
             {
-                if (_contrasenaError == value) return;
                 _contrasenaError = value;
                 OnPropertyChanged(nameof(ContrasenaError));
-                OnPropertyChanged(nameof(TieneContrasenaError));
+                _ = AnimateLabel(ContrasenaErrorLabel, !string.IsNullOrEmpty(value));
             }
         }
 
@@ -107,26 +110,20 @@ namespace MauiApp5
             get => _repetirContrasenaError;
             private set
             {
-                if (_repetirContrasenaError == value) return;
                 _repetirContrasenaError = value;
                 OnPropertyChanged(nameof(RepetirContrasenaError));
-                OnPropertyChanged(nameof(TieneRepetirContrasenaError));
+                _ = AnimateLabel(RepetirContrasenaErrorLabel, !string.IsNullOrEmpty(value));
             }
         }
-
-        public bool TieneCorreoError => !string.IsNullOrEmpty(_correoError);
-        public bool TieneContrasenaError => !string.IsNullOrEmpty(_contrasenaError);
-        public bool TieneRepetirContrasenaError => !string.IsNullOrEmpty(_repetirContrasenaError);
 
         public string RegistroMensaje
         {
             get => _registroMensaje;
             private set
             {
-                if (_registroMensaje == value) return;
                 _registroMensaje = value;
                 OnPropertyChanged(nameof(RegistroMensaje));
-                OnPropertyChanged(nameof(TieneRegistroMensaje));
+                _ = AnimateLabel(RegistroMensajeLabel, !string.IsNullOrEmpty(value));
             }
         }
 
@@ -141,9 +138,7 @@ namespace MauiApp5
             }
         }
 
-        public bool TieneRegistroMensaje => !string.IsNullOrEmpty(_registroMensaje);
-
-        // --- Propiedades para Login ---
+        //propiedades para Login
         public string LoginCorreo
         {
             get => _loginCorreo;
@@ -171,10 +166,9 @@ namespace MauiApp5
             get => _loginMensaje;
             private set
             {
-                if (_loginMensaje == value) return;
                 _loginMensaje = value;
                 OnPropertyChanged(nameof(LoginMensaje));
-                OnPropertyChanged(nameof(TieneLoginMensaje));
+                _ = AnimateLabel(LoginMensajeLabel, !string.IsNullOrEmpty(value));
             }
         }
 
@@ -189,13 +183,41 @@ namespace MauiApp5
             }
         }
 
-        public bool TieneLoginMensaje => !string.IsNullOrEmpty(_loginMensaje);
-
 
         public MainPage()
         {
             InitializeComponent();
             BindingContext = this;
+        }
+
+        async void OnButtonPressed(object? sender, EventArgs e)
+        {
+            if (sender is not Button button)
+                return;
+            await button.ScaleTo(0.95, 100, Easing.CubicOut);
+        }
+
+        async void OnButtonReleased(object? sender, EventArgs e)
+        {
+            if (sender is not Button button)
+                return;
+            await button.ScaleTo(1.0, 100, Easing.CubicIn);
+        }
+
+        private async Task AnimateLabel(Label label, bool show)
+        {
+            //primero, siempre intenta ocultar el label si es visible
+            if (label.Opacity > 0)
+            {
+                await label.FadeTo(0, 50, Easing.CubicOut);
+            }
+
+            //si hay un nuevo mensaje que mostrar, espera un instante y muéstralo
+            if (show)
+            {
+                await Task.Delay(20); // Pequeño intervalo para el efecto de "parpadeo"
+                await label.FadeTo(1, 250, Easing.CubicIn);
+            }
         }
 
         async void OnPromtyClicked(object? sender, EventArgs e)
@@ -204,7 +226,7 @@ namespace MauiApp5
 
             if (!string.IsNullOrWhiteSpace(result))
             {
-                // Por ahora, solo muestra una alerta con la pregunta.
+                //solo muestra una alerta con la pregunta.
                 await DisplayAlert("Pregunta enviada", $"Hemos recibido tu pregunta: '{result}'. Espere mientras promty está pensando.", "OK");
             }
         }
@@ -213,9 +235,9 @@ namespace MauiApp5
         {
             ValidarCampos();
 
-            if (!TieneCorreoError && !TieneContrasenaError && !TieneRepetirContrasenaError)
+            if (string.IsNullOrEmpty(CorreoError) && string.IsNullOrEmpty(ContrasenaError) && string.IsNullOrEmpty(RepetirContrasenaError))
             {
-                // Guardar usuario si no existe
+                //guardar usuario si no existe
                 if (s_usuariosRegistrados.ContainsKey(Correo))
                 {
                     RegistroExitoso = false;
@@ -223,7 +245,6 @@ namespace MauiApp5
                 }
                 else
                 {
-                    // NOTA: En una app real, la contraseña debe ser hasheada antes de guardarla.
                     s_usuariosRegistrados.Add(Correo, Contrasena);
                     RegistroExitoso = true;
                     RegistroMensaje = "Registro exitoso";
@@ -238,12 +259,23 @@ namespace MauiApp5
             SemanticScreenReader.Announce(RegistroMensaje);
         }
 
-        void OnLoginClicked(object? sender, EventArgs e)
+        async void OnLoginClicked(object? sender, EventArgs e)
         {
+            // Comprobar si el usuario está bloqueado
+            if (DateTime.UtcNow < _tiempoBloqueo)
+            {
+                var tiempoRestante = (_tiempoBloqueo - DateTime.UtcNow).TotalSeconds;
+                LoginExitoso = false;
+                LoginMensaje = $"Demasiados intentos. Espere {tiempoRestante:F0} segundos.";
+                SemanticScreenReader.Announce(LoginMensaje);
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(LoginCorreo) || string.IsNullOrWhiteSpace(LoginContrasena))
             {
                 LoginExitoso = false;
                 LoginMensaje = "Correo y contraseña son requeridos.";
+                SemanticScreenReader.Announce(LoginMensaje);
                 return;
             }
 
@@ -252,11 +284,20 @@ namespace MauiApp5
             {
                 LoginExitoso = true;
                 LoginMensaje = $"Bienvenido, {LoginCorreo}!";
+                _intentosFallidos = 0; // Reiniciar contador en éxito
             }
             else
             {
                 LoginExitoso = false;
                 LoginMensaje = "Credenciales incorrectas.";
+                _intentosFallidos++;
+
+                if (_intentosFallidos >= 3)
+                {
+                    // A partir del 3er fallo, cada fallo posterior impone un bloqueo
+                    _tiempoBloqueo = DateTime.UtcNow.AddSeconds(15);
+                    LoginMensaje = $"Credenciales incorrectas. Espere 15 segundos.";
+                }
             }
 
             SemanticScreenReader.Announce(LoginMensaje);
@@ -278,7 +319,7 @@ namespace MauiApp5
                 return "Correo requerido.";
 
             if (string.Equals(valor, "tu@correo.com", StringComparison.OrdinalIgnoreCase))
-                return "Sea serio hombre, use el suyo";
+                return "Sea serio hombre, use el suyo.";
 
             var m = s_emailRegex.Match(valor);
             if (!m.Success)
@@ -286,25 +327,25 @@ namespace MauiApp5
 
             string dominio = m.Groups["domain"].Value.ToLowerInvariant();
 
-            // Separar TLD
+            //separar TLD
             var partes = dominio.Split('.');
             if (partes.Length < 2)
                 return "Dominio inválido.";
 
             string tld = partes[^1];
 
-            // TLD mal escrito común
+            //TLD mal escrito común
             if (tld == "con")
                 return "TLD inválido 'con'. ¿Quiso decir 'com'?";
 
-            // Validar TLD conocido (no excluye dominios corporativos: si no está, se acepta pero se revisa typo)
+            //validar TLD conocido (no excluye dominios corporativos: si no está, se acepta pero se revisa typo)
             bool tldConocido = s_tldsValidos.Contains(tld, StringComparer.OrdinalIgnoreCase);
 
-            // Si es exactamente un dominio común aceptado
+            //es exactamente un dominio común aceptado
             if (s_dominiosComunes.Contains(dominio, StringComparer.OrdinalIgnoreCase))
                 return string.Empty;
 
-            // Detectar posibles typos de dominio común (distancia pequeña)
+            //detectar posibles typos de dominio común (distancia pequeña)
             string? sugerencia = null;
             int mejor = int.MaxValue;
             foreach (var d in s_dominiosComunes)
@@ -320,8 +361,8 @@ namespace MauiApp5
             if (mejor <= 2)
                 return $"Dominio posiblemente mal escrito. ¿Quiso decir '{sugerencia}'?";
 
-            // Si TLD no es conocido, aún así permitir (podría ser dominio corporativo)
-            // No error.
+            //Si TLD no es conocido, aún así permitir (podría ser dominio corporativo)
+            //No error.
             return string.Empty;
         }
 
@@ -353,7 +394,10 @@ namespace MauiApp5
             if (string.IsNullOrEmpty(valor))
                 return "Contraseña requerida.";
 
-            bool tieneLongitud = valor.Length >= 6;
+            if (valor == "12345678")
+                return "Para eso mejor nada.";
+
+            bool tieneLongitud = valor.Length >= 8;
             bool tieneMayus = valor.Any(char.IsUpper);
             bool tieneMinus = valor.Any(char.IsLower);
             bool tieneNumero = valor.Any(char.IsDigit);
@@ -362,7 +406,7 @@ namespace MauiApp5
             if (tieneLongitud && tieneMayus && tieneMinus && tieneNumero && tieneEspecial)
                 return string.Empty;
 
-            return "Debe incluir mayúscula, minúscula, número y símbolo (mín. 6).";
+            return "Debe incluir mayúscula, minúscula, número y símbolo (mín. 8).";
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
