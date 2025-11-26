@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -8,6 +9,9 @@ namespace MauiApp5
 {
     public partial class MainPage : ContentPage, INotifyPropertyChanged
     {
+        // Almacén de usuarios en memoria (para fines de demostración)
+        private static readonly Dictionary<string, string> s_usuariosRegistrados = new();
+
         string _correo = string.Empty;
         string _contrasena = string.Empty;
         string _repetirContrasena = string.Empty;
@@ -18,6 +22,12 @@ namespace MauiApp5
 
         string _registroMensaje = string.Empty;
         bool _registroExitoso;
+
+        // --- Propiedades para Login ---
+        string _loginCorreo = string.Empty;
+        string _loginContrasena = string.Empty;
+        string _loginMensaje = string.Empty;
+        bool _loginExitoso;
 
         // Regex básica para forma general de correo
         static readonly Regex s_emailRegex = new(@"^(?<local>[^@\s]+)@(?<domain>[A-Za-z0-9.-]+\.[A-Za-z]{2,})$", RegexOptions.Compiled);
@@ -133,10 +143,70 @@ namespace MauiApp5
 
         public bool TieneRegistroMensaje => !string.IsNullOrEmpty(_registroMensaje);
 
+        // --- Propiedades para Login ---
+        public string LoginCorreo
+        {
+            get => _loginCorreo;
+            set
+            {
+                if (_loginCorreo == value) return;
+                _loginCorreo = value ?? string.Empty;
+                OnPropertyChanged(nameof(LoginCorreo));
+            }
+        }
+
+        public string LoginContrasena
+        {
+            get => _loginContrasena;
+            set
+            {
+                if (_loginContrasena == value) return;
+                _loginContrasena = value ?? string.Empty;
+                OnPropertyChanged(nameof(LoginContrasena));
+            }
+        }
+
+        public string LoginMensaje
+        {
+            get => _loginMensaje;
+            private set
+            {
+                if (_loginMensaje == value) return;
+                _loginMensaje = value;
+                OnPropertyChanged(nameof(LoginMensaje));
+                OnPropertyChanged(nameof(TieneLoginMensaje));
+            }
+        }
+
+        public bool LoginExitoso
+        {
+            get => _loginExitoso;
+            private set
+            {
+                if (_loginExitoso == value) return;
+                _loginExitoso = value;
+                OnPropertyChanged(nameof(LoginExitoso));
+            }
+        }
+
+        public bool TieneLoginMensaje => !string.IsNullOrEmpty(_loginMensaje);
+
+
         public MainPage()
         {
             InitializeComponent();
             BindingContext = this;
+        }
+
+        async void OnPromtyClicked(object? sender, EventArgs e)
+        {
+            string result = await DisplayPromptAsync("Ayuda", "¿Qué necesita?", "Enviar", "Cancelar", "Esto está de relleno hasta que llegue promty");
+
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                // Por ahora, solo muestra una alerta con la pregunta.
+                await DisplayAlert("Pregunta enviada", $"Hemos recibido tu pregunta: '{result}'. Espere mientras promty está pensando.", "OK");
+            }
         }
 
         void OnRegistrarClicked(object? sender, EventArgs e)
@@ -145,8 +215,19 @@ namespace MauiApp5
 
             if (!TieneCorreoError && !TieneContrasenaError && !TieneRepetirContrasenaError)
             {
-                RegistroExitoso = true;
-                RegistroMensaje = "Registro exitoso";
+                // Guardar usuario si no existe
+                if (s_usuariosRegistrados.ContainsKey(Correo))
+                {
+                    RegistroExitoso = false;
+                    RegistroMensaje = "Este correo ya está registrado.";
+                }
+                else
+                {
+                    // NOTA: En una app real, la contraseña debe ser hasheada antes de guardarla.
+                    s_usuariosRegistrados.Add(Correo, Contrasena);
+                    RegistroExitoso = true;
+                    RegistroMensaje = "Registro exitoso";
+                }
             }
             else
             {
@@ -155,6 +236,30 @@ namespace MauiApp5
             }
 
             SemanticScreenReader.Announce(RegistroMensaje);
+        }
+
+        void OnLoginClicked(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(LoginCorreo) || string.IsNullOrWhiteSpace(LoginContrasena))
+            {
+                LoginExitoso = false;
+                LoginMensaje = "Correo y contraseña son requeridos.";
+                return;
+            }
+
+            if (s_usuariosRegistrados.TryGetValue(LoginCorreo, out var contrasenaGuardada) &&
+                contrasenaGuardada == LoginContrasena)
+            {
+                LoginExitoso = true;
+                LoginMensaje = $"Bienvenido, {LoginCorreo}!";
+            }
+            else
+            {
+                LoginExitoso = false;
+                LoginMensaje = "Credenciales incorrectas.";
+            }
+
+            SemanticScreenReader.Announce(LoginMensaje);
         }
 
         void ValidarCampos()
@@ -171,6 +276,9 @@ namespace MauiApp5
         {
             if (string.IsNullOrWhiteSpace(valor))
                 return "Correo requerido.";
+
+            if (string.Equals(valor, "tu@correo.com", StringComparison.OrdinalIgnoreCase))
+                return "Sea serio hombre, use el suyo";
 
             var m = s_emailRegex.Match(valor);
             if (!m.Success)
@@ -209,7 +317,7 @@ namespace MauiApp5
                 }
             }
 
-            if (mejor <= 2) 
+            if (mejor <= 2)
                 return $"Dominio posiblemente mal escrito. ¿Quiso decir '{sugerencia}'?";
 
             // Si TLD no es conocido, aún así permitir (podría ser dominio corporativo)

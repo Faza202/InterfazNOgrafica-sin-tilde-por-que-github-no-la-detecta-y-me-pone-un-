@@ -3,65 +3,118 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MauiApp5.MainPage">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="30,0" Spacing="25">
+    <Grid>
+        <!-- El scroll es para que se pueda bajar para ver todo, como si fuera un pergamino donde va a ir todo-->
+        <ScrollView>
+            <VerticalStackLayout Padding="30,60,30,30" Spacing="25">
 
-            <Label Text="Registro de Usuario"
-                   Style="{StaticResource Headline}"
-                   SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="¡Bienvenido a Myplanu! Baja para iniciar sesión o registrarte."
+                       Style="{StaticResource Headline}"
+                       HorizontalOptions="Center"
+                       Margin="0,0,0,30"/>
 
-            <!-- Correo -->
-            <Label Text="Correo" />
-            <Entry Placeholder="tu@correo.com"
-                   Keyboard="Email"
-                   Text="{Binding Correo}" />
-            <Label Text="{Binding CorreoError}"
-                   TextColor="Red"
-                   IsVisible="{Binding TieneCorreoError}" />
+                <Label Text="Registro de Usuario"
+                       Style="{StaticResource Headline}"
+                       SemanticProperties.HeadingLevel="Level1" />
 
-            <!-- Contraseña -->
-            <Label Text="Contraseña" />
-            <Entry Placeholder="Mín.6: mayúscula, minúscula, número y símbolo"
-                   IsPassword="True"
-                   Text="{Binding Contrasena}" />
-            <Label Text="{Binding ContrasenaError}"
-                   TextColor="Red"
-                   IsVisible="{Binding TieneContrasenaError}" />
+                <!--email-->
+                <Label Text="Correo" />
+                <Entry Placeholder="tu@correo.com"
+                       Keyboard="Email"
+                       Text="{Binding Correo}" />
+                <Label Text="{Binding CorreoError}"
+                       TextColor="Red"
+                       IsVisible="{Binding TieneCorreoError}" />
 
-            <!-- Repetir Contraseña -->
-            <Label Text="Repetir contraseña" />
-            <Entry Placeholder="Repite la contraseña"
-                   IsPassword="True"
-                   Text="{Binding RepetirContrasena}" />
-            <Label Text="{Binding RepetirContrasenaError}"
-                   TextColor="Red"
-                   IsVisible="{Binding TieneRepetirContrasenaError}" />
+                <!--Pues lo que dice abajo-->
+                <Label Text="Contraseña" />
+                <Entry Placeholder="Mín.6: mayúscula, minúscula, número y símbolo"
+                       IsPassword="True"
+                       Text="{Binding Contrasena}" />
+                <Label Text="{Binding ContrasenaError}"
+                       TextColor="Red"
+                       IsVisible="{Binding TieneContrasenaError}" />
 
-            <!-- Mensaje de registro -->
-            <Label x:Name="RegistroLabel"
-                   Text="{Binding RegistroMensaje}"
-                   IsVisible="{Binding TieneRegistroMensaje}"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center">
-                <Label.Triggers>
-                    <DataTrigger TargetType="Label"
-                                 Binding="{Binding RegistroExitoso}"
-                                 Value="True">
-                        <Setter Property="TextColor" Value="Green" />
-                    </DataTrigger>
-                    <DataTrigger TargetType="Label"
-                                 Binding="{Binding RegistroExitoso}"
-                                 Value="False">
-                        <Setter Property="TextColor" Value="Red" />
-                    </DataTrigger>
-                </Label.Triggers>
-            </Label>
+                <!--Validar contraseña-->
+                <Label Text="Repetir contraseña" />
+                <Entry Placeholder="Repite la contraseña"
+                       IsPassword="True"
+                       Text="{Binding RepetirContrasena}" />
+                <Label Text="{Binding RepetirContrasenaError}"
+                       TextColor="Red"
+                       IsVisible="{Binding TieneRepetirContrasenaError}" />
 
-            <Button Text="Registrar"
-                    Clicked="OnRegistrarClicked"
-                    HorizontalOptions="Fill" />
+                <!--Registros-->
+                <Label Text="{Binding RegistroMensaje}"
+                       IsVisible="{Binding TieneRegistroMensaje}"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label"
+                                     Binding="{Binding RegistroExitoso}"
+                                     Value="True">
+                            <Setter Property="TextColor" Value="Green" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Label"
+                                     Binding="{Binding RegistroExitoso}"
+                                     Value="False">
+                            <Setter Property="TextColor" Value="Red" />
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
 
+                <Button Text="Registrar"
+                        Clicked="OnRegistrarClicked"
+                        HorizontalOptions="Fill" />
+
+                <!--Separador para que no quede todo aplastado entre si-->
+                <BoxView HeightRequest="1" Color="Gray" Margin="0,20" />
+
+                <!-- Sección de Login -->
+                <Label Text="Iniciar Sesión"
+                       Style="{StaticResource Headline}"
+                       SemanticProperties.HeadingLevel="Level1" />
+
+                <Label Text="Correo" />
+                <Entry Placeholder="tu@correo.com"
+                       Keyboard="Email"
+                       Text="{Binding LoginCorreo}" />
+
+                <Label Text="Contraseña" />
+                <Entry IsPassword="True"
+                       Text="{Binding LoginContrasena}" />
+
+                <!--Cosas del login-->
+                <Label Text="{Binding LoginMensaje}"
+                       IsVisible="{Binding TieneLoginMensaje}"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label"
+                                     Binding="{Binding LoginExitoso}"
+                                     Value="True">
+                            <Setter Property="TextColor" Value="Green" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Label"
+                                     Binding="{Binding LoginExitoso}"
+                                     Value="False">
+                            <Setter Property="TextColor" Value="Red" />
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
+
+                <Button Text="Iniciar Sesión"
+                        Clicked="OnLoginClicked"
+                        HorizontalOptions="Fill" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Botón de promty me que pidió erving, para cuando estes leyendo esto espero que osman se mejore -->
+        <VerticalStackLayout HorizontalOptions="End" VerticalOptions="Start" Padding="10" Spacing="5">
+            <Label Text="¿Necesitas ayuda?" HorizontalOptions="End" HorizontalTextAlignment="End" />
+            <Button Text="promty" Clicked="OnPromtyClicked" HorizontalOptions="End" />
         </VerticalStackLayout>
-    </ScrollView>
+    </Grid>
 
 </ContentPage>
