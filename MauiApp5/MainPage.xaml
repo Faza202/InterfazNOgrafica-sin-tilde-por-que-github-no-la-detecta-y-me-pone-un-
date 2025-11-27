@@ -7,10 +7,11 @@
         <!--el scroll es para que se pueda bajar para ver todo, como si fuera un pergamino donde va a ir todo-->
         <ScrollView>
             <VerticalStackLayout Padding="30,60,30,30" Spacing="25">
-
-                <Label Text="¡Bienvenido a MyplanuU! Baja para iniciar sesión o registrarte."
-                       Style="{StaticResource Headline}"
+                <!--salto de linea-->
+                <Label Text="¡Bienvenido a MyplanU!&#10;Baja para iniciar sesión o registrarte."  
+                    Style="{StaticResource Headline}"
                        HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
                        Margin="0,0,0,30"/>
 
                 <Label Text="Registro de Usuario"
@@ -44,6 +45,19 @@
                        Text="{Binding RepetirContrasena}" />
                 <Label x:Name="RepetirContrasenaErrorLabel"
                        Text="{Binding RepetirContrasenaError}"
+                       TextColor="Red"
+                       Opacity="0" />
+
+                <!-- Pregunta y Respuesta de Seguridad -->
+                <Label Text="Pregunta de seguridad" />
+                <Entry Placeholder="Ej: ¿Que tipo de mujeres te gustan?"
+                       Text="{Binding PreguntaSeguridad}" />
+
+                <Label Text="Respuesta de seguridad" />
+                <Entry Placeholder="La respuesta a tu pregunta"
+                       Text="{Binding RespuestaSeguridad}" />
+                <Label x:Name="PreguntaSeguridadErrorLabel"
+                       Text="{Binding PreguntaSeguridadError}"
                        TextColor="Red"
                        Opacity="0" />
 
@@ -115,6 +129,13 @@
                         Pressed="OnButtonPressed"
                         Released="OnButtonReleased"
                         HorizontalOptions="Fill" />
+
+                <Button Text="¿Olvidaste tu contraseña?"
+                        Clicked="OnOlvidoContrasenaClicked"
+                        HorizontalOptions="Center"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Primary}"
+                        BorderWidth="0" />
 
             </VerticalStackLayout>
         </ScrollView>

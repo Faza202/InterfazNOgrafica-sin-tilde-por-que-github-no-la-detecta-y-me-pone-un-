@@ -1,25 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.Maui.Controls;
+﻿using System; // pues todo
+using System.Collections.Generic; //requerido para diccionarios
+using System.ComponentModel; //sirve para INotifyPropertyChanged que es la base del data binding
+using System.Linq; //para operaciones LINQ como Any, Contains, etc.
+using System.Security.Cryptography; //para hashing SHA256
+using System.Text; //para Encoding.UTF8
+using System.Text.RegularExpressions; //para validación de correo con regex;
+using System.Threading.Tasks; //para uso de Task y async/await;
+using Microsoft.Maui.Controls; //todo lo básico de maui;
 
 namespace MauiApp5
 {
     public partial class MainPage : ContentPage, INotifyPropertyChanged
     {
+        private record UserData(string Contrasena, string PreguntaSeguridad, string RespuestaSeguridad);
         //almacén de usuarios en memoria por ahora
-        private static readonly Dictionary<string, string> s_usuariosRegistrados = new();
+        private static readonly Dictionary<string, UserData> s_usuariosRegistrados = new();
 
         string _correo = string.Empty;
         string _contrasena = string.Empty;
         string _repetirContrasena = string.Empty;
+        string _preguntaSeguridad = string.Empty;
+        string _respuestaSeguridad = string.Empty;
 
         string _correoError = string.Empty;
         string _contrasenaError = string.Empty;
         string _repetirContrasenaError = string.Empty;
+        string _preguntaSeguridadError = string.Empty;
 
         string _registroMensaje = string.Empty;
         bool _registroExitoso;
@@ -83,6 +89,28 @@ namespace MauiApp5
             }
         }
 
+        public string PreguntaSeguridad
+        {
+            get => _preguntaSeguridad;
+            set
+            {
+                if (_preguntaSeguridad == value) return;
+                _preguntaSeguridad = value ?? string.Empty;
+                OnPropertyChanged(nameof(PreguntaSeguridad));
+            }
+        }
+
+        public string RespuestaSeguridad
+        {
+            get => _respuestaSeguridad;
+            set
+            {
+                if (_respuestaSeguridad == value) return;
+                _respuestaSeguridad = value ?? string.Empty;
+                OnPropertyChanged(nameof(RespuestaSeguridad));
+            }
+        }
+
         public string CorreoError
         {
             get => _correoError;
@@ -113,6 +141,17 @@ namespace MauiApp5
                 _repetirContrasenaError = value;
                 OnPropertyChanged(nameof(RepetirContrasenaError));
                 _ = AnimateLabel(RepetirContrasenaErrorLabel, !string.IsNullOrEmpty(value));
+            }
+        }
+
+        public string PreguntaSeguridadError
+        {
+            get => _preguntaSeguridadError;
+            private set
+            {
+                _preguntaSeguridadError = value;
+                OnPropertyChanged(nameof(PreguntaSeguridadError));
+                _ = AnimateLabel(PreguntaSeguridadErrorLabel, !string.IsNullOrEmpty(value));
             }
         }
 
@@ -183,7 +222,6 @@ namespace MauiApp5
             }
         }
 
-
         public MainPage()
         {
             InitializeComponent();
@@ -206,6 +244,7 @@ namespace MauiApp5
 
         private async Task AnimateLabel(Label label, bool show)
         {
+            if (label is null) return;
             //primero, siempre intenta ocultar el label si es visible
             if (label.Opacity > 0)
             {
@@ -215,7 +254,7 @@ namespace MauiApp5
             //si hay un nuevo mensaje que mostrar, espera un instante y muéstralo
             if (show)
             {
-                await Task.Delay(20); // Pequeño intervalo para el efecto de "parpadeo"
+                await Task.Delay(20); // Pequeño intervalo para el efecto de parpadeo
                 await label.FadeTo(1, 250, Easing.CubicIn);
             }
         }
@@ -235,17 +274,21 @@ namespace MauiApp5
         {
             ValidarCampos();
 
-            if (string.IsNullOrEmpty(CorreoError) && string.IsNullOrEmpty(ContrasenaError) && string.IsNullOrEmpty(RepetirContrasenaError))
+            if (string.IsNullOrEmpty(CorreoError) && string.IsNullOrEmpty(ContrasenaError) && string.IsNullOrEmpty(RepetirContrasenaError) && string.IsNullOrEmpty(PreguntaSeguridadError))
             {
+                var hashedCorreo = HashValue(Correo);
                 //guardar usuario si no existe
-                if (s_usuariosRegistrados.ContainsKey(Correo))
+                if (s_usuariosRegistrados.ContainsKey(hashedCorreo))
                 {
                     RegistroExitoso = false;
                     RegistroMensaje = "Este correo ya está registrado.";
                 }
                 else
                 {
-                    s_usuariosRegistrados.Add(Correo, Contrasena);
+                    var hashedPassword = HashValue(Contrasena);
+                    var hashedRespuesta = HashValue(RespuestaSeguridad);
+                    var userData = new UserData(hashedPassword, PreguntaSeguridad, hashedRespuesta);
+                    s_usuariosRegistrados.Add(hashedCorreo, userData);
                     RegistroExitoso = true;
                     RegistroMensaje = "Registro exitoso";
                 }
@@ -279,8 +322,10 @@ namespace MauiApp5
                 return;
             }
 
-            if (s_usuariosRegistrados.TryGetValue(LoginCorreo, out var contrasenaGuardada) &&
-                contrasenaGuardada == LoginContrasena)
+            var hashedLoginCorreo = HashValue(LoginCorreo);
+            var hashedLoginPassword = HashValue(LoginContrasena);
+            if (s_usuariosRegistrados.TryGetValue(hashedLoginCorreo, out var userData) &&
+                userData.Contrasena == hashedLoginPassword)
             {
                 LoginExitoso = true;
                 LoginMensaje = $"Bienvenido, {LoginCorreo}!";
@@ -303,6 +348,49 @@ namespace MauiApp5
             SemanticScreenReader.Announce(LoginMensaje);
         }
 
+        async void OnOlvidoContrasenaClicked(object? sender, EventArgs e)
+        {
+            string? correo = await DisplayPromptAsync("Recuperar Contraseña", "Introduce tu correo electrónico:", "Aceptar", "Cancelar", keyboard: Keyboard.Email);
+
+            if (string.IsNullOrWhiteSpace(correo))
+                return;
+
+            var hashedCorreo = HashValue(correo);
+            if (s_usuariosRegistrados.TryGetValue(hashedCorreo, out var userData))
+            {
+                string? respuesta = await DisplayPromptAsync("Pregunta de Seguridad", userData.PreguntaSeguridad, "Enviar", "Cancelar");
+
+                if (respuesta is not null && HashValue(respuesta) == userData.RespuestaSeguridad)
+                {
+                    // Ya no se puede mostrar la contraseña, así que se ofrece cambiarla.
+                    string? nuevaContrasena = await DisplayPromptAsync("Nueva Contraseña", "Introduce tu nueva contraseña:", "Aceptar", "Cancelar");
+
+                    if (!string.IsNullOrWhiteSpace(nuevaContrasena))
+                    {
+                        var validationError = ValidarContrasena(nuevaContrasena);
+                        if (string.IsNullOrEmpty(validationError))
+                        {
+                            var hashedNewPassword = HashValue(nuevaContrasena);
+                            s_usuariosRegistrados[hashedCorreo] = userData with { Contrasena = hashedNewPassword };
+                            await DisplayAlert("Éxito", "Tu contraseña ha sido cambiada.", "OK");
+                        }
+                        else
+                        {
+                            await DisplayAlert("Error", validationError, "OK");
+                        }
+                    }
+                }
+                else if (respuesta is not null) // El usuario introdujo una respuesta incorrecta
+                {
+                    await DisplayAlert("Error", "La respuesta de seguridad es incorrecta.", "OK");
+                }
+            }
+            else
+            {
+                await DisplayAlert("Error", "El correo electrónico no está registrado.", "OK");
+            }
+        }
+
         void ValidarCampos()
         {
             CorreoError = ValidarCorreo(Correo);
@@ -311,6 +399,16 @@ namespace MauiApp5
                                      RepetirContrasena == Contrasena
                                      ? string.Empty
                                      : "Las contraseñas no coinciden.";
+            PreguntaSeguridadError = ValidarPreguntaYRespuesta(PreguntaSeguridad, RespuestaSeguridad);
+        }
+
+        static string ValidarPreguntaYRespuesta(string pregunta, string respuesta)
+        {
+            if (string.IsNullOrWhiteSpace(pregunta) || string.IsNullOrWhiteSpace(respuesta))
+            {
+                return "La pregunta y respuesta de seguridad son requeridas.";
+            }
+            return string.Empty;
         }
 
         static string ValidarCorreo(string valor)
@@ -407,6 +505,13 @@ namespace MauiApp5
                 return string.Empty;
 
             return "Debe incluir mayúscula, minúscula, número y símbolo (mín. 8).";
+        }
+
+        static string HashValue(string value)
+        {
+            using var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
+            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLowerInvariant();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
